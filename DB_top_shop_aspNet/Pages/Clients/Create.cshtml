@@ -1,0 +1,24 @@
+﻿@page
+@model DB_top_shop_aspNet.Pages.Clients.CreateModel
+@{
+	ViewData["Title"] = "Create Client";
+}
+
+<h2>Добавление клиента</h2>
+
+<form method="post">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <div class="form-group mb-3">
+        <label asp-for="Client.Name" class="form-label"></label>
+        <input asp-for="Client.Name" class="form-control" />
+        <span asp-validation-for="Client.Name" class="text-danger"></span>
+    </div>
+
+    <div class="form-group mb-3">
+        <label asp-for="Client.Email" class="form-label"></label>
+        <input asp-for="Client.Email" class="form-control" />
+        <span asp-validation-for="Client.Email" class="text-danger"></span>
+    </div>
+    <button type="submit" class="btn btn-success">Добавить</button>
+    <a asp-page="./Index" class="btn btn-secondary">Отмена</a>
+</form>

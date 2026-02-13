@@ -1,0 +1,31 @@
+﻿@page
+@model DB_top_shop_aspNet.Pages.Products.EditModel
+@{
+	ViewData["Title"] = "Edit Product";
+}
+
+<h2>Редактировать</h2>
+
+<form method="post">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <!-- Скрытое поле Id обязательно для привязки при редактировании -->
+    <input type="hidden" asp-for="Product.Id" />
+
+    <div class="form-group mb-3">
+        <label asp-for="Product.Name" class="form-label"></label>
+        <input asp-for="Product.Name" class="form-control" />
+        <span asp-validation-for="Product.Name" class="text-danger"></span>
+    </div>
+
+    <div class="form-group mb-3">
+        <label asp-for="Product.Price" class="form-label"></label>
+        <input asp-for="Product.Price" class="form-control" />
+        <span asp-validation-for="Product.Price" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Сохранить</button>
+    <a asp-page="./Index" class="btn btn-secondary">Отмена</a>
+
+
+</form>

@@ -1,0 +1,21 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home page";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Торговая площадка</h1>
+    
+
+    <div class="mt-4">
+        <a class="btn btn-lg btn-outline-primary m-2" asp-page="/Clients/Index">Клиенты</a>
+        <a class="btn btn-lg btn-outline-success m-2" asp-page="/Products/Index">Продукты</a>
+        <a class="btn btn-lg btn-outline-success m-2" asp-page="/Orders/Index">Заказы</a>
+       
+    </div>
+
+    <div class="mt-5">
+        <a class="btn btn-secondary" asp-page="/About">О разработчике</a>
+    </div>
+</div>

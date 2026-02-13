@@ -1,0 +1,43 @@
+﻿@page
+@model DB_top_shop_aspNet.Pages.Orders.CreateModel
+
+@{
+    ViewData["Title"] = "Create";
+}
+
+<h2>Создать заказ</h2>
+
+<form method="post">
+    <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+    <div class="form-group mb-3">
+        <label asp-for="Order.Date" class="form-label"></label>
+        <input asp-for="Order.Date" class="form-control" type="date" />
+        <span asp-validation-for="Order.Date" class="text-danger"></span>
+    </div>
+
+    <div class="form-group mb-3">
+        <label asp-for="Order.ClientId" class="form-label">Клиент</label>
+        <select asp-for="Order.ClientId" class="form-control" asp-items="Model.ClientsSelectList">
+            <option value="">-- Выберите клиента --</option>
+        </select>
+        <span asp-validation-for="Order.ClientId" class="text-danger"></span>
+    </div>
+
+    <div class="form-group mb-3">
+        <label asp-for="Order.ProductId" class="form-label">Продукт</label>
+        <select asp-for="Order.ProductId" class="form-control" asp-items="Model.ProductsSelectList">
+            <option value="">-- Выберите продукт --</option>
+        </select>
+        <span asp-validation-for="Order.ProductId" class="text-danger"></span>
+    </div>
+
+    <div class="form-group mb-3">
+        <label asp-for="Order.Quantity" class="form-label"></label>
+        <input asp-for="Order.Quantity" class="form-control" />
+        <span asp-validation-for="Order.Quantity" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-success">Создать</button>
+    <a asp-page="./Index" class="btn btn-secondary">Отмена</a>
+</form>

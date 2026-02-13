@@ -1,0 +1,29 @@
+﻿@page
+@model DB_top_shop_aspNet.Pages.Clients.EditModel
+@{
+	ViewData["Title"] = "Edit Client";
+}
+<h2>Редактировать</h2>
+
+<form method="post">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <!-- Скрытое поле Id обязательно для привязки при редактировании -->
+    <input type="hidden" asp-for="Client.Id" />
+
+    <div class="form-group mb-3">
+        <label asp-for="Client.Name" class="form-label"></label>
+        <input asp-for="Client.Name" class="form-control" />
+        <span asp-validation-for="Client.Name" class="text-danger"></span>
+    </div>
+
+    <div class="form-group mb-3">
+        <label asp-for="Client.Email" class="form-label"></label>
+        <input asp-for="Client.Email" class="form-control" />
+        <span asp-validation-for="Client.Email" class="text-danger"></span>
+    </div>
+
+
+    <button type="submit" class="btn btn-primary">Сохранить</button>
+    <a asp-page="./Index" class="btn btn-secondary">Отмена</a>
+</form>

@@ -1,0 +1,20 @@
+﻿@page
+@model DB_top_shop_aspNet.Pages.Clients.DeleteModel
+@{
+	ViewData["Title"] = "Delete Client";
+}
+<h2>Удаление клиента</h2>
+
+<h4>Вы хотите удалить выбранного клиента?</h4>
+<div>
+    <dl class="row">
+        <dt class="col-sm-2">Email</dt>
+        <dd class="col-sm-10">@Model.Client.Email</dd>
+    </dl>
+
+    <form method="post">
+        <input type="hidden" asp-for="Client.Id" />
+        <button type="submit" class="btn btn-danger">Удалить</button>
+        <a asp-page="./Index" class="btn btn-secondary">Отмена</a>
+    </form>
+</div>
