@@ -24,22 +24,44 @@ namespace DB_top_shop_aspNet.Pages.Orders
 
         public async Task<IActionResult> OnGetAsync(int? id)
         {
+            //if (id == null)
+            //{
+            //    return NotFound();
+            //}
+
+            //var order = await _context.Orders.FirstOrDefaultAsync(m => m.Id == id);
+
+            //if (order == null)
+            //{
+            //    return NotFound();
+            //}
+            //else
+            //{
+            //    Order = order;
+            //}
+            //return Page();
+
             if (id == null)
             {
                 return NotFound();
             }
 
-            var order = await _context.Orders.FirstOrDefaultAsync(m => m.Id == id);
+            // Загружаем Order вместе с Client и Product
+            var order = await _context.Orders
+                .Include(o => o.Client)   // ← подгружаем клиента
+                .Include(o => o.Product)  // ← подгружаем продукт
+                .FirstOrDefaultAsync(m => m.Id == id);
 
             if (order == null)
             {
                 return NotFound();
             }
-            else
-            {
-                Order = order;
-            }
+
+            Order = order;
             return Page();
+
+
+
         }
 
         public async Task<IActionResult> OnPostAsync(int? id)

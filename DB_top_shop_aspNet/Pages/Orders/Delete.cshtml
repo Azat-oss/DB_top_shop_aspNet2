@@ -28,6 +28,12 @@
             @Html.DisplayNameFor(model => model.Order.Client)
         </dt>
         <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.Order.Client.Name)
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.Order.Client)
+        </dt>
+        <dd class="col-sm-10">
             @Html.DisplayFor(model => model.Order.Client.Email)
         </dd>
         <dt class="col-sm-2">
@@ -43,4 +49,9 @@
         <input type="submit" value="Удалить" class="btn btn-danger" /> |
         <a asp-page="./Index">На главную</a>
     </form>
+
+   
+
+
+
 </div>
