@@ -1,10 +1,10 @@
 ﻿@page
 @model ErrorModel
-@{
+@* @{
     ViewData["Title"] = "Error";
-}
+} *@
 
-<h1 class="text-danger">Error.</h1>
+@* <h1 class="text-danger">Error.</h1>
 <h2 class="text-danger">An error occurred while processing your request.</h2>
 
 @if (Model.ShowRequestId)
@@ -23,4 +23,29 @@
     It can result in displaying sensitive information from exceptions to end users.
     For local debugging, enable the <strong>Development</strong> environment by setting the <strong>ASPNETCORE_ENVIRONMENT</strong> environment variable to <strong>Development</strong>
     and restarting the app.
-</p>
+</p> *@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ошибка</title>
+    <link href="~/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" />
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-danger">Ошибка!</h1>
+        <p>@Model.ShortErrorInfo</p>
+
+        @if (Model.ShowRequestId)
+        {
+            <p><strong>ID запроса:</strong> <code>@Model.RequestId</code></p>
+        }
+
+        @if (Model.StatusCode.HasValue)
+        {
+            <p><strong>Код ошибки:</strong> @Model.StatusCode</p>
+        }
+    </div>
+</body>
+</html>

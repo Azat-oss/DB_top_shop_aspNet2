@@ -18,6 +18,7 @@ string? conSqlExpress = configuration.GetConnectionString("SqlExpress");
 string? activeDb = configuration["ActiveDatabase"] ?? "Postgres";
 
 // Логируем, какую базу мы выбрали
+
 Console.WriteLine($"--- КОНФИГУРАЦИЯ ---");
 Console.WriteLine($"Выбранная БД: {activeDb}");
 Console.WriteLine($"Строка подключения: {activeDb switch { "Postgres" => conPostgres, "SQLite" => conSQLite, _ => conSqlExpress }}");
@@ -43,7 +44,7 @@ switch (activeDb)
 
 builder.Services.AddRazorPages();
 var app = builder.Build();
-
+Console.WriteLine($"=== СРЕДА ЗАПУСКА: {app.Environment.EnvironmentName} ===");
 // --- БЛОК ИНИЦИАЛИЗАЦИИ ---
 using (var scope = app.Services.CreateScope())
 {
@@ -93,7 +94,8 @@ using (var scope = app.Services.CreateScope())
 // --- PIPELINE ---
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Error");
+    app.UseExceptionHandler("/Error"); 
+    app.UseStatusCodePagesWithReExecute("/Error", "?statusCode={0}"); 
     app.UseHsts();
 }
 
