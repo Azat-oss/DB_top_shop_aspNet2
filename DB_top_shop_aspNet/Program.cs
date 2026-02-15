@@ -1,6 +1,10 @@
 using DB_top_shop_aspNet.Data;
 using Microsoft.EntityFrameworkCore;
+using Serilog;
+using Serilog.Events;
 using SQLitePCL;
+using System.Reflection;
+using Microsoft.Extensions.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,6 +13,29 @@ var builder = WebApplication.CreateBuilder(args);
 //{
 //    Batteries.Init();
 //}
+
+// === Настройка Serilog ===
+var logsDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Logs");
+if (!Directory.Exists(logsDirectory))
+    Directory.CreateDirectory(logsDirectory);
+
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+    .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
+    .Enrich.FromLogContext()
+    .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
+    .WriteTo.File(
+        path: Path.Combine(logsDirectory, "app-.log"),
+        rollingInterval: RollingInterval.Day,
+        retainedFileCountLimit: 7, // хранить последние 7 дней
+        fileSizeLimitBytes: 10_000_000, // ~10 МБ на файл
+        outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss} {Level:u3}] {Message}{NewLine}{Exception}")
+    .CreateBootstrapLogger();
+
+builder.Host.UseSerilog(); // Подключаем Serilog как основной ILoggerProvider
+
+
 
 // Читаем настройки
 var configuration = builder.Configuration;
@@ -45,64 +72,77 @@ switch (activeDb)
 builder.Services.AddRazorPages();
 var app = builder.Build();
 Console.WriteLine($"=== СРЕДА ЗАПУСКА: {app.Environment.EnvironmentName} ===");
+
+
 // --- БЛОК ИНИЦИАЛИЗАЦИИ ---
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
-
+    var logger = services.GetRequiredService<ILogger<Program>>();
+    var initLogger = services.GetRequiredService<ILogger<Program>>();
     try
     {
         var context = services.GetRequiredService<ApplicationDbContext>();
-        var dbType = context.Database.ProviderName; // Проверяем, какой провайдер реально используется
-
-       
-
-        // 1. Создаем таблицы
         var created = context.Database.EnsureCreated();
-       
 
-        // 2. Проверяем наличие данных ПЕРЕД сидированием
+        if (created)
+            initLogger.LogInformation("База данных создана.");
+
         var clientCount = context.Clients.Count();
-        
-
         if (clientCount == 0)
         {
-            
-
-            // !!! ИЗМЕНЕНИЕ: Передаем готовый контекст, а не serviceProvider
             SeedData.Initialize(context);
-
-            
-
-            // Проверяем ПОСЛЕ
-            var newCount = context.Clients.Count();
-           
+            initLogger.LogInformation("Выполнено начальное заполнение (seeding).");
         }
         else
         {
-            
+            initLogger.LogInformation("Таблицы уже содержат данные ({ClientCount} клиентов).", clientCount);
         }
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"!!! КРИТИЧЕСКАЯ ОШИБКА !!!");
-        Console.WriteLine(ex.Message);
-        Console.WriteLine(ex.StackTrace);
+        initLogger.LogCritical(ex, "Ошибка при инициализации базы данных!");
+        throw;
     }
 }
 
-// --- PIPELINE ---
-if (!app.Environment.IsDevelopment())
+
+
+// === Middleware Pipeline ===
+if (app.Environment.IsDevelopment())  //убрал !app.Environment.IsDevelopment()
 {
-    app.UseExceptionHandler("/Error"); 
-    app.UseStatusCodePagesWithReExecute("/Error", "?statusCode={0}"); 
+    app.UseExceptionHandler("/Error");
+    app.UseStatusCodePagesWithReExecute("/Error", "?statusCode={0}");
     app.UseHsts();
 }
+else
+{
+    // В Development можно оставить Developer Exception Page
+    app.UseDeveloperExceptionPage();
+}
+
+
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 app.UseAuthorization();
 app.MapRazorPages();
+
+
+try
+{
+    Log.Information("Запуск веб-приложения...");
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Приложение завершилось с фатальной ошибкой.");
+    throw;
+}
+finally
+{
+    Log.CloseAndFlush(); 
+}
 
 app.Run();

@@ -8,8 +8,12 @@ namespace DB_top_shop_aspNet.Pages.Clients
     public class CreateModel : PageModel
     {
         private readonly ApplicationDbContext _context;
-
-        public CreateModel(ApplicationDbContext context) => _context = context;
+        private readonly ILogger<CreateModel> _logger;
+        public CreateModel(ApplicationDbContext context, ILogger<CreateModel> logger)
+        {
+            _context = context;
+            _logger = logger;
+        }
 
         [BindProperty]
         public Client Client { get; set; } = new();
@@ -20,9 +24,20 @@ namespace DB_top_shop_aspNet.Pages.Clients
         {
             if (!ModelState.IsValid) return Page();
 
-            _context.Clients.Add(Client);
-            await _context.SaveChangesAsync();
-            return RedirectToPage("./Index");
+            try
+            {
+                _context.Clients.Add(Client);
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("Клиент '{Name}' успешно создан.", Client.Name);
+               
+                return RedirectToPage("./Index");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при создании клиента с email '{Email}'.", Client.Email);
+                ModelState.AddModelError(string.Empty, "Не удалось сохранить клиента. Проверьте данные и повторите попытку.");
+                return Page();
+            }
         }
     }
 }

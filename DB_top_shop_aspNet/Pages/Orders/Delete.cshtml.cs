@@ -13,10 +13,11 @@ namespace DB_top_shop_aspNet.Pages.Orders
     public class DeleteModel : PageModel
     {
         private readonly DB_top_shop_aspNet.Data.ApplicationDbContext _context;
-
-        public DeleteModel(DB_top_shop_aspNet.Data.ApplicationDbContext context)
+        private readonly ILogger<DeleteModel> _logger;
+        public DeleteModel(ApplicationDbContext context, ILogger<DeleteModel> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         [BindProperty]
@@ -24,44 +25,25 @@ namespace DB_top_shop_aspNet.Pages.Orders
 
         public async Task<IActionResult> OnGetAsync(int? id)
         {
-            //if (id == null)
-            //{
-            //    return NotFound();
-            //}
-
-            //var order = await _context.Orders.FirstOrDefaultAsync(m => m.Id == id);
-
-            //if (order == null)
-            //{
-            //    return NotFound();
-            //}
-            //else
-            //{
-            //    Order = order;
-            //}
-            //return Page();
-
             if (id == null)
             {
+                _logger.LogWarning("Попытка удаления заказа с пустым ID.");
                 return NotFound();
             }
 
-            // Загружаем Order вместе с Client и Product
             var order = await _context.Orders
-                .Include(o => o.Client)   // ← подгружаем клиента
-                .Include(o => o.Product)  // ← подгружаем продукт
+                .Include(o => o.Client)
+                .Include(o => o.Product)
                 .FirstOrDefaultAsync(m => m.Id == id);
 
             if (order == null)
             {
+                _logger.LogWarning("Попытка удаления несуществующего заказа с ID {OrderId}.", id.Value);
                 return NotFound();
             }
 
             Order = order;
             return Page();
-
-
-
         }
 
         public async Task<IActionResult> OnPostAsync(int? id)
@@ -71,12 +53,28 @@ namespace DB_top_shop_aspNet.Pages.Orders
                 return NotFound();
             }
 
-            var order = await _context.Orders.FindAsync(id);
-            if (order != null)
+            try
             {
-                Order = order;
-                _context.Orders.Remove(Order);
-                await _context.SaveChangesAsync();
+                var order = await _context.Orders.FindAsync(id);
+
+                if (order != null)
+                {
+                    Order = order; // Сохраняем для логирования
+                    _context.Orders.Remove(Order);
+                    await _context.SaveChangesAsync();
+
+                    _logger.LogInformation("Заказ с ID {OrderId} успешно удалён.", order.Id);
+                }
+                else
+                {
+                    _logger.LogWarning("Заказ с ID {OrderId} не найден при попытке удаления.", id.Value);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при удалении заказа с ID {OrderId}.", id);
+                // Добавляем ошибку в модель, если планируем остаться на странице (хотя здесь редирект)
+                // ModelState.AddModelError(string.Empty, "Произошла ошибка при удалении.");
             }
 
             return RedirectToPage("./Index");

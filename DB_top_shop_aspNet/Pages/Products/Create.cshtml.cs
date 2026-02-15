@@ -8,8 +8,13 @@ namespace DB_top_shop_aspNet.Pages.Products
     public class CreateModel : PageModel
     {
         private readonly ApplicationDbContext _context;
+        private readonly ILogger<CreateModel> _logger;
 
-        public CreateModel(ApplicationDbContext context) => _context = context;
+        public CreateModel(ApplicationDbContext context, ILogger<CreateModel> logger)
+        {
+            _context = context;
+            _logger = logger;
+        }
 
         [BindProperty]
         public Product Product { get; set; } = new();
@@ -18,11 +23,23 @@ namespace DB_top_shop_aspNet.Pages.Products
 
         public async Task<IActionResult> OnPostAsync()
         {
+           
             if (!ModelState.IsValid) return Page();
 
-            _context.Products.Add(Product);
-            await _context.SaveChangesAsync();
-            return RedirectToPage("./Index");
+            try
+            {
+                _context.Products.Add(Product);
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("Продукт '{Name}' успешно создан.", Product.Name);
+
+                return RedirectToPage("./Index");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при создании продукта '{Name}'.", Product.Name);
+                ModelState.AddModelError(string.Empty, "Не удалось сохранить продукт. Проверьте данные и повторите попытку.");
+                return Page();
+            }
         }
     }
 }

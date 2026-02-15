@@ -14,8 +14,13 @@ namespace DB_top_shop_aspNet.Pages.Orders
     public class CreateModel : PageModel
     {
         private readonly ApplicationDbContext _context;
+        private readonly ILogger<CreateModel> _logger;
 
-        public CreateModel(ApplicationDbContext context) => _context = context;
+        public CreateModel(ApplicationDbContext context, ILogger<CreateModel> logger)
+        {
+            _context = context;
+            _logger = logger;
+        }
 
         [BindProperty]
         public Order Order { get; set; } = new();
@@ -34,37 +39,57 @@ namespace DB_top_shop_aspNet.Pages.Orders
 
         public async Task<IActionResult> OnPostAsync()
         {
-            // 🔧 Удаляем навигационные свойства из ModelState, чтобы избежать ложных ошибок валидации
+            // 🔧 Удаляем навигационные свойства из ModelState
             ModelState.Remove("Order.Client");
             ModelState.Remove("Order.Product");
 
             if (!ModelState.IsValid)
             {
-                // 🔍 (Опционально) Вывод ошибок в консоль для отладки
+                // Логируем ошибки валидации
                 foreach (var key in ModelState.Keys)
                 {
                     var errors = ModelState[key].Errors;
                     if (errors.Count > 0)
                     {
-                        Console.WriteLine($"[Validation Error] {key}: {errors[0].ErrorMessage}");
+                        _logger.LogWarning("Ошибка валидации для поля {Field}: {Error}", key, errors[0].ErrorMessage);
                     }
                 }
 
-                // Перезагружаем выпадающие списки, иначе форма будет пустой
+                // Перезагружаем списки
                 var clients = await _context.Clients.ToListAsync();
                 var products = await _context.Products.ToListAsync();
                 ClientsSelectList = new SelectList(clients, "Id", "Name");
                 ProductsSelectList = new SelectList(products, "Id", "Name");
 
-                return Page(); // остаёмся на странице
+                return Page();
             }
 
-            // Сохраняем заказ
-            _context.Orders.Add(Order);
-            await _context.SaveChangesAsync();
+            try
+            {
+                _context.Orders.Add(Order);
+                await _context.SaveChangesAsync();
 
-            return RedirectToPage("./Index");
+                // Логируем успешное создание
+                _logger.LogInformation("Заказ для клиента ID {ClientId} (Товар ID: {ProductId}) успешно создан.", Order.ClientId, Order.ProductId);
 
+                return RedirectToPage("./Index");
+            }
+            catch (Exception ex)
+            {
+                // Логируем ошибку при сохранении
+                _logger.LogError(ex, "Ошибка при создании заказа для клиента ID {ClientId}.", Order.ClientId);
+
+                // Перезагружаем списки перед показом ошибки
+                var clients = await _context.Clients.ToListAsync();
+                var products = await _context.Products.ToListAsync();
+                ClientsSelectList = new SelectList(clients, "Id", "Name");
+                ProductsSelectList = new SelectList(products, "Id", "Name");
+
+                ModelState.AddModelError(string.Empty, "Не удалось создать заказ. Проверьте данные и повторите попытку.");
+                return Page();
+
+            }
         }
+
     }
 }

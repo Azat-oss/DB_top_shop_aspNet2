@@ -14,8 +14,13 @@ namespace DB_top_shop_aspNet.Pages.Orders
     public class EditModel : PageModel
     {
         private readonly ApplicationDbContext _context;
+        private readonly ILogger<EditModel> _logger;
 
-        public EditModel(ApplicationDbContext context) => _context = context;
+        public EditModel(ApplicationDbContext context, ILogger<EditModel> logger)
+        {
+            _context = context;
+            _logger = logger;
+        }
 
         [BindProperty]
         public Order Order { get; set; } = new();
@@ -30,22 +35,19 @@ namespace DB_top_shop_aspNet.Pages.Orders
                 return NotFound();
             }
 
-            // 1. Загружаем заказ из базы
             var order = await _context.Orders.FirstOrDefaultAsync(m => m.Id == id);
 
             if (order == null)
             {
+                _logger.LogWarning("Попытка редактирования несуществующего заказа с ID {OrderId}.", id.Value);
                 return NotFound();
             }
 
             Order = order;
 
-            // 2. Загружаем списки для выпадающих меню
             var clients = await _context.Clients.ToListAsync();
             var products = await _context.Products.ToListAsync();
 
-            // ВАЖНО: Указываем текущее выбранное значение (order.ClientId), 
-            // чтобы в списке был выделен нужный клиент/продукт
             ClientsSelectList = new SelectList(clients, "Id", "Name", order.ClientId);
             ProductsSelectList = new SelectList(products, "Id", "Name", order.ProductId);
 
@@ -54,36 +56,35 @@ namespace DB_top_shop_aspNet.Pages.Orders
 
         public async Task<IActionResult> OnPostAsync()
         {
-            // 🔧 1. Удаляем навигационные свойства из проверки валидации
-            // (чтобы не было ошибок типа "Поле Client обязательно", когда мы отправили только ClientId)
+            // Удаляем навигационные свойства
             ModelState.Remove("Order.Client");
             ModelState.Remove("Order.Product");
 
-            // 2. Проверяем валидацию
             if (!ModelState.IsValid)
             {
-                // ❗ Если здесь не перезагрузить списки, страница упадет с ошибкой при рендеринге!
+                _logger.LogWarning("Ошибка валидации при редактировании заказа ID {OrderId}.", Order.Id);
+
                 var clients = await _context.Clients.ToListAsync();
                 var products = await _context.Products.ToListAsync();
-
-                // Восстанавливаем выбор пользователя (Order.ClientId содержит то, что выбрал юзер в форме)
                 ClientsSelectList = new SelectList(clients, "Id", "Name", Order.ClientId);
                 ProductsSelectList = new SelectList(products, "Id", "Name", Order.ProductId);
 
-                return Page(); // Возвращаем форму с ошибками
+                return Page();
             }
-
-            // 3. Сохраняем изменения
-            _context.Attach(Order).State = EntityState.Modified;
 
             try
             {
+                _context.Attach(Order).State = EntityState.Modified;
                 await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Заказ с ID {OrderId} успешно обновлён.", Order.Id);
+                return RedirectToPage("./Index");
             }
             catch (DbUpdateConcurrencyException)
             {
                 if (!OrderExists(Order.Id))
                 {
+                    _logger.LogWarning("Заказ с ID {OrderId} был удалён другим пользователем во время редактирования.", Order.Id);
                     return NotFound();
                 }
                 else
@@ -91,8 +92,18 @@ namespace DB_top_shop_aspNet.Pages.Orders
                     throw;
                 }
             }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при обновлении заказа с ID {OrderId}.", Order.Id);
 
-            return RedirectToPage("./Index");
+                var clients = await _context.Clients.ToListAsync();
+                var products = await _context.Products.ToListAsync();
+                ClientsSelectList = new SelectList(clients, "Id", "Name", Order.ClientId);
+                ProductsSelectList = new SelectList(products, "Id", "Name", Order.ProductId);
+
+                ModelState.AddModelError(string.Empty, "Не удалось сохранить изменения. Повторите попытку.");
+                return Page();
+            }
         }
 
         private bool OrderExists(int id)
