@@ -22,10 +22,52 @@
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-page="/Index">Home</a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Privacy">Privacy</a>
-                        </li>
+                       @*  <li class="nav-item">
+                            <a class="nav-link text-dark" asp-area="" asp-page="/Register">Регистрация</a>
+                        </li> *@
                     </ul>
+                                   
+
+                   
+                    <ul class="navbar-nav justify-content-end">
+                        @inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
+                        @{
+                            var httpContext = HttpContextAccessor.HttpContext;
+                            var userName = httpContext?.Session?.GetString("UserName");
+                            var userRole = httpContext?.Session?.GetString("UserRole");
+                            var isLoggedIn = !string.IsNullOrEmpty(userName);
+                        }
+
+                        @if (isLoggedIn)
+                        {
+                            <!-- Пользователь вошёл: показываем имя и кнопку выхода -->
+                            <li class="nav-item">
+                                <span class="nav-link text-success fw-bold">
+                                     @userName
+                                    <small class="text-muted">(@userRole)</small>
+                                </span>
+                            </li>
+                            <li class="nav-item">
+                                <form method="post" asp-page="/Login" asp-page-handler="Logout" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-link nav-link text-danger border-0">
+                                        Выйти
+                                    </button>
+                                </form>
+                            </li>
+                        }
+                        else
+                        {
+                            <!-- Пользователь не вошёл: показываем Войти и Регистрация -->
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-area="" asp-page="/Login">Войти</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-area="" asp-page="/Register">Регистрация</a>
+                            </li>
+                        }
+                    </ul>
+
                 </div>
             </div>
         </nav>

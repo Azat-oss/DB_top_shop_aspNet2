@@ -1,0 +1,36 @@
+﻿@page
+@model DB_top_shop_aspNet.Pages.LoginModel
+@{
+	ViewData["Title"] = "Вход";
+}
+<div class="container mt-4">
+    <h2>Вход в систему</h2>
+
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <form method="post" asp-page-handler="Login">
+                <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+                <div class="mb-3">
+                    <label asp-for="User.UserName" class="form-label"></label>
+                    <input asp-for="User.UserName" class="form-control" />
+                    <span asp-validation-for="User.UserName" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="User.Password" class="form-label"></label>
+                    <input asp-for="User.Password" class="form-control" type="password" />
+                    <span asp-validation-for="User.Password" class="text-danger"></span>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-success">Войти</button>
+                </div>
+            </form>
+
+            <div class="mt-3">
+                <a asp-page="/Register" class="btn btn-link">Нет аккаунта? Зарегистрироваться</a>
+            </div>
+        </div>
+    </div>
+</div>

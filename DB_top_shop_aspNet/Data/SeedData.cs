@@ -1,6 +1,7 @@
 ﻿using Bogus;
 using DB_top_shop_aspNet.Models;
 using Microsoft.EntityFrameworkCore;
+using static DB_top_shop_aspNet.Models.User;
 
 namespace DB_top_shop_aspNet.Data
 {
@@ -97,6 +98,14 @@ namespace DB_top_shop_aspNet.Data
             Console.WriteLine($"SeedData: Сохранено заказов: {saved2}");
 
             Console.WriteLine("SeedData: Успешно завершено.");
+            var users = new List<User>
+            { new() { UserName = "admin", Password = "Passw0rd", Role = Roles.Admin },
+              new() { UserName = "manager", Password = "12345", Role = Roles.Manager },
+              new() { UserName = "guest", Password = "guest", Role = Roles.User }
+            };
+            context.Users.AddRange(users);
+            context.SaveChanges();
+
         }
     }
 }
