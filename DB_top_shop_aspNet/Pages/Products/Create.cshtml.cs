@@ -1,10 +1,12 @@
 using DB_top_shop_aspNet.Data;
 using DB_top_shop_aspNet.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace DB_top_shop_aspNet.Pages.Products
 {
+    [Authorize(Policy = "AdminOnly")]
     public class CreateModel : PageModel
     {
         private readonly ApplicationDbContext _context;

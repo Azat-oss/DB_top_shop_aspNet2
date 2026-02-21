@@ -4,7 +4,19 @@
 	ViewData["Title"] = "Продукты";
 }
 <h2>Продукты</h2>
-<p><a asp-page="Create" class="btn btn-primary">Добавить</a></p>
+
+@if (User.IsInRole("Admin"))
+{
+    <p><a asp-page="Create" class="btn btn-primary">Добавить</a></p>
+}
+
+else if (!User.Identity.IsAuthenticated)
+{
+    <div class="alert alert-warning">Войдите как Администратор для управления клиентами.</div>
+}
+
+
+@* <p><a asp-page="Create" class="btn btn-primary">Добавить</a></p> *@
 
 <table class="table">
     <thead><tr><th>Наименование</th><th>Цена, руб</th><th>Действие</th></tr></thead>
@@ -12,11 +24,36 @@
         @foreach (var item in Model.Products)
         {
             <tr>
+
+
                 <td>@item.Name</td>
                 <td>@item.Price</td>
+
+                
+
+
                 <td>
-                    <a asp-page="./Edit" asp-route-id="@item.Id" class="btn btn-sm btn-warning">Редактировать</a>
-                    <a asp-page="./Delete" asp-route-id="@item.Id" class="btn btn-sm btn-danger">Удалить</a>
+
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <a asp-page="./Edit" asp-route-id="@item.Id" class="btn btn-sm btn-warning">Редактировать</a>
+                        <a asp-page="./Delete" asp-route-id="@item.Id" class="btn btn-sm btn-danger">Удалить</a>
+                    }
+
+                    else if (User.IsInRole("Manager"))
+                    {
+                        <span class="text-muted">Только просмотр</span>
+                        
+                    }
+                    else if (User.IsInRole("User"))
+                    {
+                        <span class="text-muted">Только просмотр</span>
+                        
+                    }
+
+
+                   @*  <a asp-page="./Edit" asp-route-id="@item.Id" class="btn btn-sm btn-warning">Редактировать</a>
+                    <a asp-page="./Delete" asp-route-id="@item.Id" class="btn btn-sm btn-danger">Удалить</a> *@
                 </td>
             </tr>
         }

@@ -99,10 +99,17 @@ namespace DB_top_shop_aspNet.Data
 
             Console.WriteLine("SeedData: Успешно завершено.");
             var users = new List<User>
-            { new() { UserName = "admin", Password = "Passw0rd", Role = Roles.Admin },
-              new() { UserName = "manager", Password = "12345", Role = Roles.Manager },
-              new() { UserName = "guest", Password = "guest", Role = Roles.User }
+            { new() { UserName = "admin", Role = Roles.Admin },
+              new() { UserName = "manager", Role = Roles.Manager },
+              new() { UserName = "guest",  Role = Roles.User }
             };
+
+            foreach (var user in users)
+            {
+                user.SetPassword(user.UserName); // пароль = логин для простоты
+            }
+
+
             context.Users.AddRange(users);
             context.SaveChanges();
 

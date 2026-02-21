@@ -1,7 +1,11 @@
 using DB_top_shop_aspNet.Data;
 using DB_top_shop_aspNet.Models;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace DB_top_shop_aspNet.Pages
 {
@@ -11,7 +15,9 @@ namespace DB_top_shop_aspNet.Pages
         private readonly ILogger<LoginModel> _logger;
 
         [BindProperty]
-        public User User { get; set; } = new();
+        public User InputUser { get; set; } = new();
+
+        public string? ErrorMessage { get; set; }
 
         public LoginModel(ApplicationDbContext context, ILogger<LoginModel> logger)
         {
@@ -24,48 +30,62 @@ namespace DB_top_shop_aspNet.Pages
             HttpContext.Session.Clear();
         }
 
-        public IActionResult OnPostLogin()
+        public async Task<IActionResult> OnPostLoginAsync()
         {
-            if (!ModelState.IsValid)
+            if (!ModelState.IsValid || string.IsNullOrEmpty(InputUser.UserName) || string.IsNullOrEmpty(InputUser.PasswordInput))
             {
+                ErrorMessage = "Заполните логин и пароль";
                 return Page();
             }
 
-            // ищем пользователя с этим именем
-            var user = _context.Users.FirstOrDefault(u => u.UserName == User.UserName);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == InputUser.UserName);
 
             if (user is null)
             {
-                ModelState.AddModelError("User.UserName", "Пользователь не найден !");
+                ErrorMessage = "Пользователь не найден!";
+                _logger.LogWarning("Попытка входа несуществующего пользователя: {UserName}", InputUser.UserName);
                 return Page();
             }
-            else
+
+            if (!user.VerifyPassword(InputUser.PasswordInput))
             {
-                // проверка введенного пароля
-                if (user.Password != User.Password)
-                {
-                    ModelState.AddModelError("User.UserName", "Пароль не верен !");
-                    return Page();
-                }
-
-                HttpContext.Session.SetString("UserName", user.UserName);
-                HttpContext.Session.SetString("UserRole", user.Role.ToString());
-                HttpContext.Session.SetInt32("UserId", user.Id);
-
-                _logger.LogInformation($"{User.ToString()} вошел в систему !");
-                return RedirectToPage("/Index");
+                ErrorMessage = "Неверный пароль!";
+                _logger.LogWarning("Неверный пароль для пользователя: {UserName}", InputUser.UserName);
+                return Page();
             }
-        }
 
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.Name, user.UserName),
+                new Claim(ClaimTypes.Role, user.Role.ToString()),
+                new Claim("UserId", user.Id.ToString())
+            };
 
-        public IActionResult OnPostLogout()
-        {
-            HttpContext.Session.Clear();
-            _logger.LogInformation("Пользователь вышел из системы");
+            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+
+            var authProperties = new AuthenticationProperties
+            {
+                IsPersistent = true,
+                ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(30)
+            };
+
+            await HttpContext.SignInAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme,
+                new ClaimsPrincipal(claimsIdentity),
+                authProperties);
+
+            HttpContext.Session.SetInt32("UserId", user.Id);
+            _logger.LogInformation("Пользователь {UserName} вошел.", user.UserName);
+
             return RedirectToPage("/Index");
         }
 
-
+        public async Task<IActionResult> OnPostLogoutAsync()
+        {
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            HttpContext.Session.Clear();
+            return RedirectToPage("/Index");
+        }
 
     }
 }

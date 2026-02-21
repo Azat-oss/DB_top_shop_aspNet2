@@ -13,29 +13,29 @@
                 <div asp-validation-summary="All" class="text-danger mb-3"></div>
                 
                 <div class="mb-3">
-                    <label asp-for="User.UserName" class="form-label"></label>
-                    <input asp-for="User.UserName" class="form-control" placeholder="Логин" />
-                    <span asp-validation-for="User.UserName" class="text-danger"></span>
+                    <label asp-for="InputUser.UserName" class="form-label"></label>
+                    <input asp-for="InputUser.UserName" class="form-control" placeholder="Логин" />
+                    <span asp-validation-for="InputUser.UserName" class="text-danger"></span>
                 </div>
 
                 <div class="mb-3">
-                    <label asp-for="User.Password" class="form-label"></label>
-                    <input asp-for="User.Password" class="form-control" placeholder="" />
-                    <span asp-validation-for="User.Password" class="text-danger"></span>
+                    <label asp-for="InputUser.PasswordInput" class="form-label"></label>
+                    <input asp-for="InputUser.PasswordInput" class="form-control" placeholder="" />
+                    <span asp-validation-for="InputUser.PasswordInput" class="text-danger"></span>
                 </div>
 
                 @* выбор роли *@
                 <div class="mb-3">
-                    <label asp-for="User.Role" class="form-label"></label>
+                    <label asp-for="InputUser.Role" class="form-label"></label>
                     
                     @* ИСПРАВЛЕНО: Указан полный путь к вложенному enum User.Roles *@
-                    <select asp-for="User.Role" asp-items="Html.GetEnumSelectList<DB_top_shop_aspNet.Models.User.Roles>()" class="form-select">
+                    <select asp-for="InputUser.Role" asp-items="Html.GetEnumSelectList<DB_top_shop_aspNet.Models.User.Roles>()" class="form-select">
                         @* ИСПРАВЛЕНО: Добавлен знак '=' в value *@
                         <option value="">-- Выберите роль --</option>
                     </select>
                     
                     @* ИСПРАВЛЕНО: Проверка теперь для Role, а не UserName *@
-                    <span asp-validation-for="User.Role" class="text-danger"></span>
+                    <span asp-validation-for="InputUser.Role" class="text-danger"></span>
                 </div>
 
                 <div class="d-grid gap-2">

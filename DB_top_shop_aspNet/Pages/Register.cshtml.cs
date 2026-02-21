@@ -2,6 +2,7 @@ using DB_top_shop_aspNet.Data;
 using DB_top_shop_aspNet.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
 
 namespace DB_top_shop_aspNet.Pages
 {
@@ -11,7 +12,9 @@ namespace DB_top_shop_aspNet.Pages
         private readonly ILogger<RegisterModel> _logger;
 
         [BindProperty]
-        public User User { get; set; } = new();
+        public User InputUser { get; set; } = new();
+
+        public string? ErrorMessage { get; set; }
 
         public RegisterModel(ApplicationDbContext context, ILogger<RegisterModel> logger)
         {
@@ -19,29 +22,39 @@ namespace DB_top_shop_aspNet.Pages
             _logger = logger;
         }
 
-        public void OnGet()
-        {
-        }
+        public void OnGet() { }
 
-        public IActionResult OnPostCreate()
+        public async Task<IActionResult> OnPostCreate()
         {
-            if (!ModelState.IsValid)
+            if (!ModelState.IsValid || string.IsNullOrEmpty(InputUser.UserName) || string.IsNullOrEmpty(InputUser.PasswordInput))
             {
+                ErrorMessage = "Заполните все поля";
                 return Page();
             }
 
-            if (!_context.Users.Any(u => u.UserName == User.UserName))
+            if (await _context.Users.AnyAsync(u => u.UserName == InputUser.UserName))
             {
-                _context.Users.Add(User);
-                _context.SaveChanges();
-                _logger.LogInformation($"{User.ToString()} зарегистрирован !");
-                return RedirectToPage("/Login");
-            }
-            else
-            {
-                ModelState.AddModelError("User.UserName", "Пользователь с таким именем уже существует !");
+                ErrorMessage = "Пользователь с таким именем уже существует!";
                 return Page();
             }
+
+            var newUser = new User
+            {
+                UserName = InputUser.UserName,
+                Role = InputUser.Role,
+
+
+
+                PasswordHash = ""
+            };
+
+            newUser.SetPassword(InputUser.PasswordInput);
+
+            _context.Users.Add(newUser);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Новый пользователь зарегистрирован: {UserName}", newUser.UserName);
+            return RedirectToPage("/Login");
         }
     }
 }

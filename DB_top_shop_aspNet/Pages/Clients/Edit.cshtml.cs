@@ -1,11 +1,15 @@
 using DB_top_shop_aspNet.Data;
 using DB_top_shop_aspNet.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 
 namespace DB_top_shop_aspNet.Pages.Clients
+
+
 {
+    [Authorize(Policy = "AdminOnly")]
     public class EditModel : PageModel
     {
         private readonly ApplicationDbContext _context;

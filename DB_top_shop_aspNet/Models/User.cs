@@ -1,4 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using BCrypt.Net;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace DB_top_shop_aspNet.Models
 {
@@ -16,20 +18,34 @@ namespace DB_top_shop_aspNet.Models
 
         [Display(Name = "Логин")]
         [Required(ErrorMessage = "Имя обязательно")]
-        [StringLength(10, MinimumLength = 5, ErrorMessage = "Имя должно быть от 5 до 10 символов")]
-        public String UserName { get; set; } = String.Empty;
+        [StringLength(50, MinimumLength = 3)]
+        public string UserName { get; set; } = string.Empty;
 
+        // Поле только для формы (не сохраняется в БД)
+        [NotMapped]
         [Display(Name = "Пароль")]
-        [Required(ErrorMessage = "Пароль обязателен")]
-        [StringLength(10, MinimumLength = 1, ErrorMessage = "Пароль должен быть от 1 до 10 символов")]
-        // автоматически рендерится как <input type="password"> c tag-helpers
         [DataType(DataType.Password)]
-        public String Password { get; set; } = String.Empty;
+        public string? PasswordInput { get; set; }
+
+        // Поле для хранения хеша в БД
+        //[Required]
+        [Column("Password")]
+        public string PasswordHash { get; set; } = string.Empty;
 
         [Display(Name = "Роль")]
         public Roles Role { get; set; } = Roles.User;
 
-        public override String ToString()
+        public void SetPassword(string plainPassword)
+        {
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(plainPassword);
+        }
+
+        public bool VerifyPassword(string plainPassword)
+        {
+            return BCrypt.Net.BCrypt.Verify(plainPassword, PasswordHash);
+        }
+
+        public override string ToString()
         {
             return $"Имя: {UserName} Роль: {Role}";
         }
