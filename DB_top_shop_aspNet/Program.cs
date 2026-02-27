@@ -1,14 +1,20 @@
+using DB_top_shop_aspNet;          // ← ДОБАВЛЕНО для доступа к OrdersREST
 using DB_top_shop_aspNet.Data;
+using DB_top_shop_aspNet.Models;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;     // ← Нужно для AddSwaggerGen
 using Serilog;
 using Serilog.Events;
 using SQLitePCL;
 using System.Reflection;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using System.Text;
+using Microsoft.AspNetCore.Builder;
+
 
 // === ИНИЦИАЛИЗАЦИЯ ===
 var builder = WebApplication.CreateBuilder(args);
@@ -78,49 +84,100 @@ switch (activeDb)
         throw new InvalidOperationException($"Unknown database type: {activeDb}");
 }
 
+// === JWT Configuration ===
+var jwtConfig = builder.Configuration.GetSection("Jwt");
+var jwtKey = jwtConfig["Key"] ?? throw new InvalidOperationException("JWT Key not configured");
+var keyBytes = Encoding.UTF8.GetBytes(jwtKey);
+
 // === РЕГИСТРАЦИЯ СЕРВИСОВ ===
 builder.Services.AddRazorPages();
+builder.Services.AddHttpContextAccessor();
 
-// Cookie Authentication
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(options =>
-    {
-        // Пути к страницам входа/выхода (файлы лежат в /Pages/)
-        options.LoginPath = "/Login";
-        options.LogoutPath = "/Login";
-        options.AccessDeniedPath = "/Login";
-
-        options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
-        options.SlidingExpiration = true;
-        options.Cookie.HttpOnly = true;
-        options.Cookie.IsEssential = true;
-
-        // Для локальной разработки без HTTPS используйте None
-        // Для продакшена с HTTPS используйте Always
-        options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
-            ? CookieSecurePolicy.None
-            : CookieSecurePolicy.Always;
-
-        options.Cookie.SameSite = SameSiteMode.Lax;
-
-        // Имя куки (опционально)
-        options.Cookie.Name = "TopShop.Auth";
-    });
-
-// Авторизация и политики
-builder.Services.AddAuthorization(options =>
+// === Аутентификация: Cookie (Pages) + JWT (API) ===
+builder.Services.AddAuthentication(options =>
 {
-    options.AddPolicy("AdminOnly", policy =>
-        policy.RequireRole("Admin"));
-
-    options.AddPolicy("ManagerOrAdmin", policy =>
-        policy.RequireRole("Manager", "Admin"));
-
-    options.AddPolicy("UserOrHigher", policy =>
-        policy.RequireRole("User", "Manager", "Admin"));
+    // По умолчанию для всего приложения — Cookie (для Razor Pages)
+    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+})
+// 🔹 Cookie Authentication (для Razor Pages)
+.AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
+{
+    options.LoginPath = "/Login";
+    options.LogoutPath = "/Login";
+    options.AccessDeniedPath = "/Login";
+    options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
+    options.SlidingExpiration = true;
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+        ? CookieSecurePolicy.None
+        : CookieSecurePolicy.Always;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.Name = "TopShop.Auth";
+})
+// 🔹 JWT Bearer Authentication (для REST API)
+.AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = jwtConfig["Issuer"],
+        ValidAudience = jwtConfig["Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(keyBytes),
+        RoleClaimType = ClaimTypes.Role,
+        NameClaimType = ClaimTypes.Name
+    };
+    options.Events = new JwtBearerEvents
+    {
+        OnAuthenticationFailed = context =>
+        {
+            if (context.Exception is SecurityTokenExpiredException)
+                context.Response.Headers.Append("Token-Expired", "true");
+            return Task.CompletedTask;
+        },
+        OnMessageReceived = context =>
+        {
+            // Поддержка токена в query string для Swagger
+            var token = context.Request.Query["access_token"];
+            if (!string.IsNullOrEmpty(token) && context.Request.Path.StartsWithSegments("/api"))
+                context.Token = token;
+            return Task.CompletedTask;
+        }
+    };
 });
 
-builder.Services.AddHttpContextAccessor();
+// === Политики авторизации ===
+builder.Services.AddAuthorization(options =>
+{
+    // 🔹 Для Cookie (Razor Pages)
+    options.AddPolicy("AdminOnly", p =>
+        p.RequireRole("Admin"));
+    options.AddPolicy("ManagerOrAdmin", p =>
+        p.RequireRole("Manager", "Admin"));
+    options.AddPolicy("UserOrHigher", p =>
+        p.RequireRole("User", "Manager", "Admin"));
+
+    // 🔹 Для JWT (REST API) — с явным указанием схемы аутентификации
+    options.AddPolicy("ApiAdminOnly", p =>
+    {
+        p.RequireRole("Admin");
+        p.AuthenticationSchemes.Add(JwtBearerDefaults.AuthenticationScheme);
+    });
+    options.AddPolicy("ApiManagerAdmin", p =>
+    {
+        p.RequireRole("Manager", "Admin");
+        p.AuthenticationSchemes.Add(JwtBearerDefaults.AuthenticationScheme);
+    });
+    options.AddPolicy("ApiUserAny", p =>
+    {
+        p.RequireRole("User", "Manager", "Admin");
+        p.AuthenticationSchemes.Add(JwtBearerDefaults.AuthenticationScheme);
+    });
+});
 
 // Session (для дополнительных данных, не для аутентификации)
 builder.Services.AddSession(options =>
@@ -129,6 +186,49 @@ builder.Services.AddSession(options =>
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
     options.Cookie.SameSite = SameSiteMode.Lax;
+});
+
+// === Swagger с поддержкой JWT ===
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "TopShop API",
+        Version = "v1",
+        Description = "REST API для управления заказами с JWT-аутентификацией"
+    });
+
+    // 🔐 Кнопка авторизации в Swagger UI
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Введите JWT токен в формате: `Bearer {your_token}`"
+    });
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+
+    // XML-комментарии (опционально, если включены в .csproj)
+    // var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    // var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    // if (File.Exists(xmlPath)) options.IncludeXmlComments(xmlPath);
 });
 
 // === ПОСТРОЕНИЕ ПРИЛОЖЕНИЯ ===
@@ -145,13 +245,10 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var context = services.GetRequiredService<ApplicationDbContext>();
-
-        // Создаёт БД и таблицы, если их нет
         var created = context.Database.EnsureCreated();
         if (created)
             initLogger.LogInformation("База данных создана.");
 
-        // Seeding, если таблица Users пуста
         if (!context.Users.Any())
         {
             SeedData.Initialize(context);
@@ -170,11 +267,17 @@ using (var scope = app.Services.CreateScope())
 }
 
 // === MIDDLEWARE PIPELINE ===
-
-// Обработка ошибок
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
+
+    // 🔹 Swagger только в Development
+    app.UseSwagger();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "TopShop API v1");
+        options.RoutePrefix = "swagger"; // Доступ по https://localhost:7151/swagger
+    });
 }
 else
 {
@@ -185,23 +288,26 @@ else
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-
 app.UseRouting();
 
-// 🔐 ВАЖНО: Порядок middleware!
-app.UseAuthentication();    // Сначала аутентификация
-app.UseAuthorization();     // Потом авторизация
-app.UseSession();           // Session после Auth
+// 🔐 Порядок middleware — КРИТИЧЕН!
+app.UseAuthentication();    // 1. Аутентификация
+app.UseAuthorization();     // 2. Авторизация  
+app.UseSession();           // 3. Session
 
 app.MapRazorPages();
+
+// 🔹 Регистрация REST API endpoints
+app.MapOrdersApi(); // ← Твой extension method из OrdersREST.cs
 
 // === ЗАПУСК ===
 try
 {
-    Log.Information("🚀 Запуск веб-приложения на портах: {Urls}",
-        string.Join(", ", app.Urls));
+    var swaggerUrl = app.Urls.FirstOrDefault()?.TrimEnd('/') + "/swagger";
+    Log.Information("🚀 Приложение запущено. Swagger: {SwaggerUrl}", swaggerUrl);
+    Log.Information("📡 API endpoints: {Prefix}/api/orders", app.Urls.FirstOrDefault()?.TrimEnd('/'));
 
-    app.Run();
+    //app.Run();
 }
 catch (Exception ex)
 {

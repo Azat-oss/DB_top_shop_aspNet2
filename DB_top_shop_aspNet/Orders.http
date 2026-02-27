@@ -1,0 +1,54 @@
+@host = https://localhost:7032
+@api = {{host}}/api/orders
+
+# 🔐 1. Получить JWT токен (публичный endpoint)
+# Пароль должен соответствовать хешу в БД (BCrypt)
+POST {{api}}/jwt
+Content-Type: application/json
+
+{
+  "UserName": "admin",
+  "Password": "admin"
+}
+
+###
+# 📋 Скопируйте token из ответа и вставьте ниже:
+# @token = Bearer eyJhbGciOiJI...
+
+### 2. Получить все заказы (Manager/Admin)
+GET {{api}}
+Accept: application/json
+Authorization: {{token}}
+
+### 3. Получить заказ по ID
+GET {{api}}/2
+Accept: application/json
+Authorization: {{token}}
+
+### 4. Создать заказ (User/Manager/Admin)
+POST {{api}}
+Content-Type: application/json
+Authorization: {{token}}
+
+{
+  "date": "2025-10-29T12:00:00Z",
+  "clientId": 1,
+  "productId": 1,
+  "quantity": 2
+}
+
+### 5. Обновить заказ
+PUT {{api}}/1
+Content-Type: application/json
+Authorization: {{token}}
+
+{
+  "date": "2025-10-30T10:00:00Z",
+  "clientId": 1,
+  "productId": 2,
+  "quantity": 5
+}
+
+### 6. Удалить заказ (Admin only)
+DELETE {{api}}/1
+Authorization: {{token}}
