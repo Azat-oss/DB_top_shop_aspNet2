@@ -8,15 +8,85 @@
     <h1 class="display-4">Торговая площадка</h1>
     
 
-    <div class="mt-4">
+    <div class="mt-4 custom-margin-bottom">
         <a class="btn btn-lg btn-outline-primary m-2" asp-page="/Clients/Index">Клиенты</a>
         <a class="btn btn-lg btn-outline-success m-2" asp-page="/Products/Index">Продукты</a>
         <a class="btn btn-lg btn-outline-success m-2" asp-page="/Orders/Index">Заказы</a>
        
     </div>
 
-    <div class="mt-5">
-        <a class="btn btn-secondary" asp-page="/About">О разработчике</a>
+
+
+
+</div>
+<!-- Карусель изображений -->
+
+
+
+<div class="text-center">
+<div id="productsCarousel" class="carousel slide carousel-fade mx-auto mb-5" data-bs-ride="carousel" style="max-width: 800px;">
+    <!-- Индикаторы (точки внизу) — можно убрать, если не нужны -->
+    <div class="carousel-indicators">
+        <button type="button" data-bs-target="#productsCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Пельмени"></button>
+        <button type="button" data-bs-target="#productsCarousel" data-bs-slide-to="1" aria-label="Котлеты"></button>
+        <button type="button" data-bs-target="#productsCarousel" data-bs-slide-to="2" aria-label="Манты"></button>
+        <button type="button" data-bs-target="#productsCarousel" data-bs-slide-to="3" aria-label="Колбасы"></button>
+        <button type="button" data-bs-target="#productsCarousel" data-bs-slide-to="4" aria-label="Хлеб"></button>
+        <button type="button" data-bs-target="#productsCarousel" data-bs-slide-to="5" aria-label="Напитки"></button>
     </div>
+
+    <!-- Слайды -->
+    <div class="carousel-inner rounded shadow">
+        <div class="carousel-item active">
+
+            <div class="carousel-image-wrapper">
+                <img src="~/images/pelmeni.jpg" class="carousel-image" alt="Пельмени">
+            </div>
+        </div>
+        <div class="carousel-item">
+
+            <div class="carousel-image-wrapper">
+                <img src="~/images/kotlety.jpg" class="carousel-image" alt="Котлеты">
+            </div>
+        </div>
+        <div class="carousel-item">
+
+            <div class="carousel-image-wrapper">
+                <img src="~/images/manty.jpg" class="carousel-image" alt="Манты">
+            </div>
+        </div>
+        <div class="carousel-item">
+
+            <div class="carousel-image-wrapper">
+                <img src="~/images/kolbasa.jpg" class="carousel-image" alt="Колбасы">
+            </div>
+
+        </div>
+        <div class="carousel-item">
+
+            <div class="carousel-image-wrapper">
+                <img src="~/images/hleb.jpg" class="carousel-image" alt="Хлеб">
+            </div>
+
+        </div>
+        <div class="carousel-item">
+
+            <div class="carousel-image-wrapper">
+                <img src="~/images/napitki.jpg" class="carousel-image" alt="Напитки">
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Кнопки навигации (стрелки) -->
+    <button class="carousel-control-prev" type="button" data-bs-target="#productsCarousel" data-bs-slide="prev">
+        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Предыдущий</span>
+    </button>
+    <button class="carousel-control-next" type="button" data-bs-target="#productsCarousel" data-bs-slide="next">
+        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Следующий</span>
+    </button>
 </div>
 
+</div>
