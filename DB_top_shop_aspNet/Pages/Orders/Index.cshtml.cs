@@ -1,15 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using DB_top_shop_aspNet.Data;
+using DB_top_shop_aspNet.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
-using DB_top_shop_aspNet.Data;
-using DB_top_shop_aspNet.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace DB_top_shop_aspNet.Pages.Orders
 {
+    [Authorize(Policy = "ManagerOrAdmin")] // Менеджер видит, Админ делает всё
     public class IndexModel : PageModel
     {
         private readonly DB_top_shop_aspNet.Data.ApplicationDbContext _context;

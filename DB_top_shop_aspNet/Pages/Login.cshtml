@@ -9,6 +9,15 @@
     <div class="row justify-content-center">
         <div class="col-md-6">
             <form method="post" asp-page-handler="Login">
+
+              
+                @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+                {
+                    <div class="alert alert-danger" role="alert">
+                        @Model.ErrorMessage
+                    </div>
+                }
+
                 <div asp-validation-summary="All" class="text-danger mb-3"></div>
 
                 <div class="mb-3">
@@ -18,8 +27,22 @@
                 </div>
 
                 <div class="mb-3">
-                    <label asp-for="InputUser.PasswordInput" class="form-label"></label>
-                    <input asp-for="InputUser.PasswordInput" class="form-control" type="password" />
+                    <label asp-for="InputUser.PasswordInput" class="form-label">Пароль</label>
+                    
+                    <!-- ВАЖНО: id должен совпадать с тем, что в JS -->
+                    <input asp-for="InputUser.PasswordInput"
+                           class="form-control"
+                           type="password"
+                           id="passwordField"
+                           placeholder="Введите пароль" />
+                    
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" id="showPasswordCheckbox">
+                        <label class="form-check-label" for="showPasswordCheckbox">
+                            Показать пароль
+                        </label>
+                    </div>
+                    
                     <span asp-validation-for="InputUser.PasswordInput" class="text-danger"></span>
                 </div>
 
@@ -34,3 +57,21 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const showPasswordCheckbox = document.getElementById('showPasswordCheckbox');
+            const passwordField = document.getElementById('passwordField');
+
+            if (showPasswordCheckbox && passwordField) {
+                showPasswordCheckbox.addEventListener('change', function () {
+                    // Если чекбокс отмечен -> показываем пароль, иначе -> скрываем
+                    passwordField.type = this.checked ? 'text' : 'password';
+                });
+            }
+        });
+    </script>
+}

@@ -3,50 +3,89 @@
 @{
     ViewData["Title"] = "Регистрация";
 }
-<div class="container mt-4">
-    <h2>Регистрация нового пользователя</h2>
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <!-- Форма регистрации -->
-            <form method="post" asp-page-handler="Create">
-                @* общие ошибки валидации вверх *@
-                <div asp-validation-summary="All" class="text-danger mb-3"></div>
+<h2>Регистрация нового пользователя</h2>
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <form method="post" asp-page-handler="Create">
                 
-                <div class="mb-3">
-                    <label asp-for="InputUser.UserName" class="form-label"></label>
-                    <input asp-for="InputUser.UserName" class="form-control" placeholder="Логин" />
-                    <span asp-validation-for="InputUser.UserName" class="text-danger"></span>
+            @* 🔥 Отображение ошибки из модели *@
+            @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+            {
+                <div class="alert alert-danger" role="alert">
+                    @Model.ErrorMessage
                 </div>
+            }
 
-                <div class="mb-3">
-                    <label asp-for="InputUser.PasswordInput" class="form-label"></label>
-                    <input asp-for="InputUser.PasswordInput" class="form-control" placeholder="" />
-                    <span asp-validation-for="InputUser.PasswordInput" class="text-danger"></span>
-                </div>
+            @* Общие ошибки валидации *@
+            <div asp-validation-summary="All" class="text-danger mb-3"></div>
+                
+            <div class="mb-3">
+                <label asp-for="InputUser.UserName" class="form-label">Логин</label>
+                <input asp-for="InputUser.UserName" class="form-control" placeholder="Введите логин" />
+                <span asp-validation-for="InputUser.UserName" class="text-danger"></span>
+            </div>
 
-                @* выбор роли *@
-                <div class="mb-3">
-                    <label asp-for="InputUser.Role" class="form-label"></label>
+            @* 🔥 ПОЛЕ ПАРОЛЯ — ИСПРАВЛЕНО: добавлен id="passwordField" *@
+            <div class="mb-3">
+                <label asp-for="InputUser.PasswordInput" class="form-label">Пароль</label>
+                <input asp-for="InputUser.PasswordInput"
+                       class="form-control"
+                       type="password"
+                       id="passwordField"
+                       placeholder="Придумайте пароль" />
                     
-                    @* ИСПРАВЛЕНО: Указан полный путь к вложенному enum User.Roles *@
-                    <select asp-for="InputUser.Role" asp-items="Html.GetEnumSelectList<DB_top_shop_aspNet.Models.User.Roles>()" class="form-select">
-                        @* ИСПРАВЛЕНО: Добавлен знак '=' в value *@
-                        <option value="">-- Выберите роль --</option>
-                    </select>
+                <div class="form-check mt-2">
+                    <input class="form-check-input" type="checkbox" id="showPasswordCheckbox">
+                    <label class="form-check-label" for="showPasswordCheckbox">
+                        Показать пароль
+                    </label>
+                </div>
                     
-                    @* ИСПРАВЛЕНО: Проверка теперь для Role, а не UserName *@
-                    <span asp-validation-for="InputUser.Role" class="text-danger"></span>
-                </div>
+                <span asp-validation-for="InputUser.PasswordInput" class="text-danger"></span>
+            </div>
 
-                <div class="d-grid gap-2">
-                    <button type="submit" class="btn btn-primary">@ViewData["Title"]</button>
-                </div>
-                <div class="mt-3">
-                    <a asp-page="/Login" class="btn btn-link align-center">
-                        Уже есть аккаунт ? Войти
-                    </a>
-                </div>
-            </form>
-        </div>
+            @* Выбор роли *@
+            <div class="mb-3">
+                <label asp-for="InputUser.Role" class="form-label">Роль</label>
+                <select asp-for="InputUser.Role"
+                        asp-items="Html.GetEnumSelectList<DB_top_shop_aspNet.Models.User.Roles>()"
+                        class="form-select">
+                    <option value="">-- Выберите роль --</option>
+                </select>
+                <span asp-validation-for="InputUser.Role" class="text-danger"></span>
+            </div>
+
+            <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-primary">@ViewData["Title"]</button>
+            </div>
+            <div class="mt-3">
+                <a asp-page="/Login" class="btn btn-link align-center">
+                    Уже есть аккаунт? Войти
+                </a>
+            </div>
+        </form>
     </div>
 </div>
+
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const checkbox = document.getElementById('showPasswordCheckbox');
+            const passwordInput = document.getElementById('passwordField');
+
+            if (!passwordInput) {
+                console.error("Ошибка: Поле пароля с id='passwordField' не найдено!");
+                return;
+            }
+
+            if (checkbox) {
+                checkbox.addEventListener('change', function () {
+                    passwordInput.type = this.checked ? 'text' : 'password';
+                });
+            }
+        });
+    </script>
+}

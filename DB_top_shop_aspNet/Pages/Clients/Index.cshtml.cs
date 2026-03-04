@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace DB_top_shop_aspNet.Pages.Clients
 {
     [Authorize(Policy = "ManagerOrAdmin")] // Менеджер видит, Админ делает всё
-
+    //[AllowAnonymous]
     public class IndexModel : PageModel
     {
         private readonly ApplicationDbContext _context;
