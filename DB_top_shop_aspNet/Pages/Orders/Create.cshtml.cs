@@ -1,5 +1,6 @@
 ﻿using DB_top_shop_aspNet.Data;
 using DB_top_shop_aspNet.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -11,15 +12,17 @@ using System.Threading.Tasks;
 
 namespace DB_top_shop_aspNet.Pages.Orders
 {
+    [Authorize]
     public class CreateModel : PageModel
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<CreateModel> _logger;
-
-        public CreateModel(ApplicationDbContext context, ILogger<CreateModel> logger)
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        public CreateModel(ApplicationDbContext context, ILogger<CreateModel> logger, IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
             _logger = logger;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         [BindProperty]
@@ -30,65 +33,70 @@ namespace DB_top_shop_aspNet.Pages.Orders
 
         public async Task OnGetAsync()
         {
-            var clients = await _context.Clients.ToListAsync();
-            var products = await _context.Products.ToListAsync();
+            await LoadSelectListsAsync();
 
-            ClientsSelectList = new SelectList(clients, "Id", "Name");
-            ProductsSelectList = new SelectList(products, "Id", "Name");
+            //var clients = await _context.Clients.ToListAsync();
+            //var products = await _context.Products.ToListAsync();
+
+            //ClientsSelectList = new SelectList(clients, "Id", "Name");
+            //ProductsSelectList = new SelectList(products, "Id", "Name");
         }
 
         public async Task<IActionResult> OnPostAsync()
         {
-            // 🔧 Удаляем навигационные свойства из ModelState
             ModelState.Remove("Order.Client");
             ModelState.Remove("Order.Product");
+            // Важно: не биндим CreatedByUserId из формы, чтобы пользователь не подменил его
+            ModelState.Remove("Order.CreatedByUserId");
 
             if (!ModelState.IsValid)
             {
-                // Логируем ошибки валидации
-                foreach (var key in ModelState.Keys)
-                {
-                    var errors = ModelState[key].Errors;
-                    if (errors.Count > 0)
-                    {
-                        _logger.LogWarning("Ошибка валидации для поля {Field}: {Error}", key, errors[0].ErrorMessage);
-                    }
-                }
-
-                // Перезагружаем списки
-                var clients = await _context.Clients.ToListAsync();
-                var products = await _context.Products.ToListAsync();
-                ClientsSelectList = new SelectList(clients, "Id", "Name");
-                ProductsSelectList = new SelectList(products, "Id", "Name");
-
+                await LoadSelectListsAsync();
                 return Page();
             }
+
+            // 🔥 ОПРЕДЕЛЯЕМ ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ
+            var user = _httpContextAccessor.HttpContext?.User;
+            int currentUserId = 0;
+
+            var userIdClaim = user?.FindFirst("UserId")?.Value;
+            if (!string.IsNullOrEmpty(userIdClaim) && int.TryParse(userIdClaim, out int parsedId))
+            {
+                currentUserId = parsedId;
+            }
+            else
+            {
+                // Fallback
+                var dbUser = await _context.Users.FirstOrDefaultAsync(u => u.UserName == user.Identity.Name);
+                if (dbUser == null) return RedirectToPage("/Login");
+                currentUserId = dbUser.Id;
+            }
+
+            // Присваиваем ID создателя
+            Order.CreatedByUserId = currentUserId;
 
             try
             {
                 _context.Orders.Add(Order);
                 await _context.SaveChangesAsync();
-
-                // Логируем успешное создание
-                _logger.LogInformation("Заказ для клиента ID {ClientId} (Товар ID: {ProductId}) успешно создан.", Order.ClientId, Order.ProductId);
-
+                _logger.LogInformation("Заказ создан пользователем ID {UserId}", currentUserId);
                 return RedirectToPage("./Index");
             }
             catch (Exception ex)
             {
-                // Логируем ошибку при сохранении
-                _logger.LogError(ex, "Ошибка при создании заказа для клиента ID {ClientId}.", Order.ClientId);
-
-                // Перезагружаем списки перед показом ошибки
-                var clients = await _context.Clients.ToListAsync();
-                var products = await _context.Products.ToListAsync();
-                ClientsSelectList = new SelectList(clients, "Id", "Name");
-                ProductsSelectList = new SelectList(products, "Id", "Name");
-
-                ModelState.AddModelError(string.Empty, "Не удалось создать заказ. Проверьте данные и повторите попытку.");
+                _logger.LogError(ex, "Ошибка создания заказа");
+                await LoadSelectListsAsync();
+                ModelState.AddModelError("", "Не удалось создать заказ.");
                 return Page();
-
             }
+        }
+
+        private async Task LoadSelectListsAsync()
+        {
+            var clients = await _context.Clients.ToListAsync();
+            var products = await _context.Products.ToListAsync();
+            ClientsSelectList = new SelectList(clients, "Id", "Name");
+            ProductsSelectList = new SelectList(products, "Id", "Name");
         }
 
     }

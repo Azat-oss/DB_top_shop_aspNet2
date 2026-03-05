@@ -22,6 +22,8 @@ namespace DB_top_shop_aspNet.Models
         [Range(1, 1000, ErrorMessage = "Количество должно быть от 1 до 1000")]
         public int Quantity { get; set; }
 
+        [Display(Name = "Создал пользователь")]
+        public int CreatedByUserId { get; set; }
         public Client Client { get; set; } = null!;
         public Product Product { get; set; } = null!;
     }
